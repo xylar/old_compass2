@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
-<config case="forward_short">
-	<add_link source="../init_step2/graph.info" dest="graph.info"/>
-	<add_link source="../init_step2/init_mode_forcing_data.nc" dest="forcing_data_init.nc"/>
-	<add_link source="../adjust_ssh/init.nc" dest="init.nc"/>
+<config case="test">
+	<add_link source="../initial_state/graph.info" dest="graph.info"/>
+	<add_link source="../initial_state/init_mode_forcing_data.nc" dest="forcing_data_init.nc"/>
+	<add_link source="../ssh_adjustment/init.nc" dest="init.nc"/>
 	<add_link source="forcing_data_init.nc" dest="forcing_data.nc"/>
+	<add_link source="../Ocean0.cfg" dest="Ocean0.cfg"/>
 
 	<add_executable source="model" dest="ocean_model"/>
 
@@ -31,11 +32,4 @@
 			<attribute name="output_interval">0000_00:00:01</attribute>
 		</stream>
 	</streams>
-
-	<run_script name="run.py">
-		<step executable="gpmetis">
-			<argument flag="graph.info">4</argument>
-		</step>
-		<model_run procs="4" threads="1" namelist="namelist.ocean" streams="streams.ocean"/>
-	</run_script>
 </config>
