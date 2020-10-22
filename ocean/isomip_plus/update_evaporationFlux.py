@@ -4,84 +4,103 @@ from __future__ import absolute_import, division, print_function, \
 
 import numpy
 from netCDF4 import Dataset
-import subprocess
 import glob
+import shutil
 import os
+import errno
 
-in_forcing_file = "forcing_data_init.nc"
-out_forcing_file = "forcing_data_updated.nc"
-out_forcing_link = "forcing_data.nc"
 
-subprocess.check_call(['cp', in_forcing_file, out_forcing_file])
-subprocess.check_call(['ln', '-sfn', out_forcing_file, out_forcing_link])
+def symlink_force(target, link_name):
+    # https://stackoverflow.com/a/27103129/7728169
+    try:
+        os.symlink(target, link_name)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            os.remove(link_name)
+            os.symlink(target, link_name)
+        else:
+            raise e
 
-lastFileName = sorted(glob.glob('timeSeriesStatsMonthly*.nc'))[-1]
 
-outFile = Dataset(out_forcing_file, 'r+')
+def update_evaporation_flux(in_forcing_file, out_forcing_file,
+                            out_forcing_link):
 
-inFile = Dataset('init.nc', 'r')
-areaCell = inFile.variables['areaCell'][:]
-ssh0 = inFile.variables['ssh'][0, :]
-nCells = len(inFile.dimensions['nCells'])
-inFile.close()
+    shutil.copyfile(in_forcing_file, out_forcing_file)
 
-evaporationFluxVar = outFile.variables['evaporationFlux']
-seaIceSalinityFluxVar = outFile.variables['seaIceSalinityFlux']
-seaIceHeatFluxVar = outFile.variables['seaIceHeatFlux']
-evaporationFlux = evaporationFluxVar[0, :]
+    symlink_force(out_forcing_file, out_forcing_link)
 
-evapMask = evaporationFlux != 0.
+    lastFileName = sorted(glob.glob('timeSeriesStatsMonthly*.nc'))[-1]
 
-evapArea = numpy.sum(areaCell*evapMask)
+    outFile = Dataset(out_forcing_file, 'r+')
 
-totalArea = numpy.sum(areaCell)
+    inFile = Dataset('init.nc', 'r')
+    areaCell = inFile.variables['areaCell'][:]
+    ssh0 = inFile.variables['ssh'][0, :]
+    nCells = len(inFile.dimensions['nCells'])
+    inFile.close()
 
-rho_sw = 1026.
-cp_sw = 3.996e3
-secPerYear = 365*24*60*60
+    evaporationFluxVar = outFile.variables['evaporationFlux']
+    seaIceSalinityFluxVar = outFile.variables['seaIceSalinityFlux']
+    seaIceHeatFluxVar = outFile.variables['seaIceHeatFlux']
+    evaporationFlux = evaporationFluxVar[0, :]
 
-sflux_factor = 1.0
-hflux_factor = 1.0/(rho_sw*cp_sw)
+    evapMask = evaporationFlux != 0.
 
-Tsurf = -1.9
-Ssurf = 33.8
+    evapArea = numpy.sum(areaCell*evapMask)
 
-meanSSH0 = numpy.sum(ssh0*evapMask*areaCell)/evapArea
+    totalArea = numpy.sum(areaCell)
 
-inFile = Dataset(lastFileName, 'r')
-ssh = inFile.variables['timeMonthly_avg_ssh'][0, :]
-inFile.close()
-meanSSH = numpy.sum(ssh*evapMask*areaCell)/evapArea
+    rho_sw = 1026.
+    cp_sw = 3.996e3
+    secPerYear = 365*24*60*60
 
-deltaSSH = max(meanSSH - meanSSH0, 0.)
+    sflux_factor = 1.0
+    hflux_factor = 1.0/(rho_sw*cp_sw)
 
-# parameterize the outgoing flux as a "spillway" with the given width,
-# chosen to be 500 m so that a 20-m excess height is dissipated in about 2 months
-spillwayWidth = 500.
-g = 9.81
+    Tsurf = -1.9
+    Ssurf = 33.8
 
-flowRate = -spillwayWidth*numpy.sqrt(0.5*g*deltaSSH**3)
+    meanSSH0 = numpy.sum(ssh0*evapMask*areaCell)/evapArea
 
-estimatedHeightChange = flowRate*30*24*60*60/totalArea
+    inFile = Dataset(lastFileName, 'r')
+    ssh = inFile.variables['timeMonthly_avg_ssh'][0, :]
+    inFile.close()
+    meanSSH = numpy.sum(ssh*evapMask*areaCell)/evapArea
 
-# evap (m/s) is only over evapArea and negative for evaporation rather than
-# precipitation
-meanEvapRate = flowRate/evapArea
-evapRate = meanEvapRate*evapMask
+    deltaSSH = max(meanSSH - meanSSH0, 0.)
 
-evaporationFlux = evapRate*rho_sw
+    # parameterize the outgoing flux as a "spillway" with the given width,
+    # chosen to be 500 m so that a 20-m excess height is dissipated in about 2 months
+    spillwayWidth = 500.
+    g = 9.81
 
-print('update evap: mean sea-level increase: {} m'.format(deltaSSH))
+    flowRate = -spillwayWidth*numpy.sqrt(0.5*g*deltaSSH**3)
 
-print('update evap: est. one-month reduction by evap: {} m'.format(
-    estimatedHeightChange))
+    estimatedHeightChange = flowRate*30*24*60*60/totalArea
 
-print('update evap: evaporation rate: {} m/yr'.format(meanEvapRate*secPerYear))
+    # evap (m/s) is only over evapArea and negative for evaporation rather than
+    # precipitation
+    meanEvapRate = flowRate/evapArea
+    evapRate = meanEvapRate*evapMask
 
-evaporationFluxVar[0, :] = evaporationFlux
+    evaporationFlux = evapRate*rho_sw
 
-seaIceSalinityFluxVar[0, :] = evapRate*Ssurf/sflux_factor
+    print('update evap: mean sea-level increase: {} m'.format(deltaSSH))
 
-seaIceHeatFluxVar[0, :] = evapRate*Tsurf/hflux_factor
+    print('update evap: est. one-month reduction by evap: {} m'.format(
+        estimatedHeightChange))
 
-outFile.close()
+    print('update evap: evaporation rate: {} m/yr'.format(meanEvapRate*secPerYear))
+
+    evaporationFluxVar[0, :] = evaporationFlux
+
+    seaIceSalinityFluxVar[0, :] = evapRate*Ssurf/sflux_factor
+
+    seaIceHeatFluxVar[0, :] = evapRate*Tsurf/hflux_factor
+
+    outFile.close()
+
+
+if __name__ == '__main__':
+    update_evaporation_flux("forcing_data_init.nc", "forcing_data_updated.nc",
+                            "forcing_data.nc")
