@@ -32,10 +32,6 @@ if __name__ == '__main__':
     scaling = [float(s) for s in scaling.split(',')]
     if scaling[0] == 0.:
         raise ValueError('The first scaling in the forcing must be nonzero')
-    years = config['forcing'].get('years')
-    years = [int(y) for y in years.split(',')]
-    if years[0] != 1:
-        raise ValueError('The first year in the forcing must be 0001')
 
     process_input_geometry('input_geometry.nc', 'input_geometry_processed.nc',
                            filterSigma=filter_sigma,

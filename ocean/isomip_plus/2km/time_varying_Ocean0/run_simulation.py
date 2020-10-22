@@ -105,20 +105,22 @@ def main():
     config.set('namelist', 'config_pio_num_iotasks', '{}'.format(pio_tasks))
     config.set('namelist', 'config_pio_stride', '{}'.format(pio_stride))
 
-    update_namelist('namelist.ocean', config['namelist'])
-
     scaling = config['forcing'].get('scaling')
     scaling = [float(s) for s in scaling.split(',')]
     if scaling[0] == 0.:
         raise ValueError('The first scaling in the forcing must be nonzero')
-    years = config['forcing'].get('years')
-    years = [int(y) for y in years.split(',')]
-    if years[0] != 1:
-        raise ValueError('The first year in the forcing must be 0001')
+
+    years = list(range(1, len(scaling)+1))
 
     forcing_filename = 'land_ice_forcing.nc'
     if not os.path.exists(forcing_filename):
         process_land_ice_forcing('init.nc', forcing_filename, years, scaling)
+
+    config.set('namelist',
+               'config_time_varying_land_ice_forcing_cycle_duration',
+               "'{:04d}-00-00_00:00:00'".format(len(scaling)))
+
+    update_namelist('namelist.ocean', config['namelist'])
 
     subprocess.check_call(['gpmetis', 'graph.info', '{}'.format(cores)])
     print("\n")
@@ -137,7 +139,7 @@ def main():
     print("     *****************************")
     print("\n")
 
-    update_evaporation_flux('forcing_data_init.nc', 'forcing_data_updated.nc'
+    update_evaporation_flux('forcing_data_init.nc', 'forcing_data_updated.nc',
                             'forcing_data.nc')
 
 
