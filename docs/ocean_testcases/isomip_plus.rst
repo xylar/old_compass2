@@ -122,19 +122,26 @@ ice topography.
 Again, MPAS-Ocean does not yet support the moving boundaries, so this experiment
 has not yet been implemented in COMPASS.
 
+.. _isomip_plus_setup:
+
 Setting up a run in COMPASS
 ---------------------------
 
-In a local check-out of the ``MPAS-Dev/MPAS-Model/ocean/develop`` branch:
+In a local check-out of the ``MPAS-Dev/compass/master`` branch, make sure you
+have an updated link to ``MPAS-Dev/MPAS-Model/ocean/develop``:
 
 .. code-block:: bash
 
-   cd testing_and_setup/compass/
+   git submodule update --init --recursive
+
+Build the code within the ``MPAS-Model/ocean/develop`` directory as you normally
+would (possibly checking out a different branch, possibly after adding a new
+remote such as your own fork of ``MPAS-Model``) or build the code in another
+path completely (e.g. your local clone of ``MPAS-Model``).  If the latter,
+substitute a full path to your local branch for ``MPAS-Model/ocean/develop``.
 
 To build test cases, you need to tell COMPASS where to find a few thing.
-Open a file ``config.ocean`` and put the following, where we have used the
-example path ``usr/projects/climate/username/mpas/model/ocean/develop`` as the
-location where MPAS-Ocena has been checked out and compiled:
+Open a file ``config.ocean`` and put in the following:
 
 .. code-block:: ini
 
@@ -149,8 +156,8 @@ location where MPAS-Ocena has been checked out and compiled:
    # init namelists in the default_inputs directory after a successful build of
    # the ocean model.
    [namelists]
-   forward = /usr/projects/climate/username/mpas/model/ocean/develop/namelist.ocean.forward
-   init = /usr/projects/climate/username/mpas/model/ocean/develop/namelist.ocean.init
+   forward = MPAS-Model/ocean/develop/namelist.ocean.forward
+   init = MPAS-Model/ocean/develop/namelist.ocean.init
 
 
    # The streams section defines paths to template streams files that will be used
@@ -158,8 +165,8 @@ location where MPAS-Ocena has been checked out and compiled:
    # init streams files in the default_inputs directory after a successful build of
    # the ocean model.
    [streams]
-   forward = /usr/projects/climate/username/mpas/model/ocean/develop/streams.ocean.forward
-   init = /usr/projects/climate/username/mpas/model/ocean/develop/streams.ocean.init
+   forward = MPAS-Model/ocean/develop/streams.ocean.forward
+   init = MPAS-Model/ocean/develop/streams.ocean.init
 
 
    # The executables section defines paths to required executables. These
@@ -167,7 +174,7 @@ location where MPAS-Ocena has been checked out and compiled:
    # Full paths should be provided in order to access the executables from
    # anywhere on the machine.
    [executables]
-   model = /usr/projects/climate/username/mpas/model/ocean/develop/ocean_model
+   model = MPAS-Model/ocean/develop/ocean_model
 
 
    # The paths section describes paths that are used within the ocean core test
@@ -179,16 +186,16 @@ location where MPAS-Ocena has been checked out and compiled:
    # the same directory, or different directory. Additionally, if they are empty
    # some test cases might download data into them, which will then be reused if
    # the test case is run again later.
-   mpas_model = /usr/projects/climate/username/mpas/model/ocean/develop
+   mpas_model = MPAS-Model/ocean/develop
    mesh_database = /usr/projects/regionalclimate/COMMON_MPAS/ocean/grids/mesh_database
    initial_condition_database = /usr/projects/regionalclimate/COMMON_MPAS/ocean/grids/initial_condition_database
    bathymetry_database = /usr/projects/regionalclimate/COMMON_MPAS/ocean/grids/bathymetry_database
 
 You can supply paths for the ``mesh_database``, ``initial_condition_database``
 and ``bathymetry_database`` that are initially empty.  COMPASS will download
-this data as needed.  If you are on an E3SM supported machine or LANL's
-Institutional Computing, you should use the shared locations to avoid
-unnecessary downloads.
+this data as needed as long as it has access to the internet as test cases are
+being set up.  If you are on an E3SM supported machine or LANL's Institutional
+Computing, you should use the shared locations to avoid unnecessary downloads.
 
 List the available ISOMIP+ test cases:
 
@@ -198,18 +205,23 @@ List the available ISOMIP+ test cases:
 
 There are 2 resolutions (2 km and 5 km) and 3 test cases at each resolution
 (Ocean0, 1 and 2) plus a time-varying version of Ocean0 that is being used to
-explore moving boundaries.  Pick the test case you are interested in running.
-In this example, we choose COM (2km) Ocean0
+explore moving boundaries, see :ref:`ocean_isomip_plus_time_var_ocean0`_ below.
+Pick the test case you are interested in running. In this example, we choose
+COM (2km) Ocean0.
 
 Set up the test case as follows:
 
 .. code-block:: bash
 
-   ./setup_testcase.py -o ocean -c isomip_plus -r 2km -t Ocean0 -f config.ocean -m runtime_definitions/srun.xml --work_dir /lustre/scratch4/turquoise/username/isomip_plus_Ocean0
+   ./setup_testcase.py -o ocean -c isomip_plus -r 2km -t Ocean0 -f config.ocean \
+        -m runtime_definitions/srun.xml \
+        --work_dir /lustre/scratch4/turquoise/username/isomip_plus_Ocean0
 
 The directory ``/lustre/scratch4/turquoise/username/isomip_plus_Ocean0`` should
 be some convenient path to set up and run the directory, typically in a scratch
-space on a supercomputer or cluster.
+space on a supercomputer or cluster.  We assume here that slurm is available for
+parallel runs (``srun``) but you may want to use ``mpirun`` instead if you are
+running on a laptop or another machine that doesn't have slurm.
 
 Running the test case
 ---------------------
@@ -228,6 +240,8 @@ libraries, etc., which will be covered elsewhere in this documentation.
    <<load modules needed for MPI, python, etc.>>
 
    ./run_test.py
+
+.. _isomip_plus_long_run:
 
 Running a full 2- or 20-year simulation
 ---------------------------------------
@@ -399,3 +413,169 @@ More Information
 
    isomip_plus_at_lanl
 
+.. _ocean_isomip_plus_time_var_ocean0:
+
+Time-varying Ocean0
+===================
+
+For testing a moving ice shelf without grounding-line motion, we made the
+``isomip_plus/2km/time_varying_Ocean0`` test case.  This test case prescribes
+a time series of the land-ice pressure and land-ice draft (and also the land-ice
+fraction, which is held constant) that are scaled versions of the original
+Ocean0 geometry.  This test case is intended to be a testbed for developing new
+vertical coordinates, horizontal pressure-gradient calculations, and other
+algorithms appropriate for changing ice-shelf-cavity geometry.
+
+The setup for this test case is a little different from the others
+
+Customizing the configuration
+-----------------------------
+
+Set up the test case as in :ref:`isomip_plus_setup`_.
+Unlike the other ISOMIP+ test cases, this test case can be controlled via the
+config file ``Ocean0.cfg``. This file is in the ``time_varying_Ocean0``
+directory and is linked to in each step (``base_mesh``, ``initial_state``,
+etc.)
+
+.. code-block:: ini
+
+    [geometry]
+    # config options related to processing the ISOMIP+ input geometry
+
+    # a number of input grid cells (km) over which to smooth the input data
+    filter_sigma = 2.0
+
+    # minimum ice thickness, below which ice is considered to have calved
+    min_ice_thickness = 100.0
+
+
+    [forcing]
+    # config options related time-varying land-ice forcing
+
+    # the vertical scaling of land-ice pressure and land-ice draft relative to
+    # their values in Ocean0 at each year of the simulation (starting at year 0001).
+    # The first scaling must be non-zero because all subsequent scaling values are
+    # renormalized by this value.
+    scaling = 0.1, 1.0, 1.0
+
+    [namelist]
+    # substitutions for namelist options
+
+    config_isomip_plus_init_bot_temp = 1.0
+    config_isomip_plus_init_bot_sal = 34.7
+    config_isomip_plus_restore_evap_rate = 200.0
+
+
+    [ssh_adjustment]
+    # namelist options related to adjusting the ocean surface (SSH) to be in
+    # balance with land-ice pressure
+
+    # how many short forward-model runs to use to determine pressure imbalance
+    iteration_count = 10
+
+    # whether to modify landIcePressure or ssh to balance the other
+    variable_to_modify = landIcePressure
+
+
+    [execution]
+
+    # the number of I/O tasks used by PIO used during init mode, ssh adjustment and
+    # the short test run
+    init_pio_tasks = 1
+
+    # the number of cores to run with during init mode, ssh adjustment and the short
+    # test run
+    init_cores = 4
+
+    # the number of I/O tasks used by PIO used during init mode, ssh adjustment and
+    # the short test run
+    simulation_pio_tasks = 2
+
+    # the number of cores to run with during forward mode
+    simulation_cores = 136
+
+    # whether to use mpirun or srun to run the model
+    parallel_executable = srun
+
+The ``[geometry]`` config options are used to determine how the ISOMIP+ geometry
+files are preprocessed for MPAS-Ocean.  They are first smoothed using a filter
+width ``filter_sigma`` (in km) and then ice shallower than ``min_ice_thickness``
+is removed to simulate calving.
+
+The ``[forcing]`` section controls the time series of land-ice thickness and
+land-ice draft that provides land-ice "forcing" for the simulation. Scaling is
+a fractional scaling provided for the beginning of each year of the simulation.
+The ice draft is computed in the initial condition using the Ocean0 geometry
+multiplied by the first value in ``scaling``.  An land-ice pressure in balance
+with this draft is computed in the ``ssh_adjustment`` step of the test case.
+For each subsequent year, the geometry is scaled relative to the field resulting
+from ``ssh_adjustment``.  The default behavior is to begin with an ice shelf
+that is only 10% the thickness of the original Ocean0 and to expand to the full
+Ocean0 thickness over one year, remaining at that thickness for an additional
+year.
+
+The ``[namelist]`` section can be used to define new values for any namelist
+parameters (during init and forward) that should be changed.  The changes
+apply ot all steps (if the namelist keys are found in ``namelist.ocean``) so
+this is not an appropriate place to change namelist values that are specific to
+a step.  In such cases, just edit ``namelist.ocean`` directly.  The options
+given by default can be used to control the temperature and salinity at the
+sea floor in the initial condition, and the initial rate of "evaporation" used
+to maintain sea level in the run.
+
+The ``[ssh_adjustment]`` section can be used to change how the sea surface
+height (SSH) is made to be dynamically consistent with the land-ice pressure.
+By default, we adjust the pressure in an effort to minimize initial changes in
+SSH within the first hour of a forward ocean simulation.  By default, we
+perform 10 forward runs, adjusting the land-ice pressure at the beginning of
+each subsequent run based on changes in the SSH in the previous run.  The
+contents of ``maxDeltaSSH_*.log`` should show convergence of the change in
+SSH and pressure to zero.  More iterations will tend to mean smaller shocks at
+the beginning of a longer simulation.  We have found that 10 to 20 iterations is
+typically sufficient.
+
+The ``[execution]`` section controls how many cores and PIO tasks are used in
+"init" (that is, all steps other than ``simulation``) and "simulation" steps of
+the test case.  There should typically be one PIO task per node used in a
+simulation and ``simulation_cores`` should typically be the total number of
+available cores. ``parallel_executable`` should be change to ``mpirun`` if
+``srun`` is not available.  (This test case ignores the parallel executable
+specified via the ``-m`` flag to ``setup_testcase.py``.)
+
+
+Creating the initial condition
+------------------------------
+
+To create the initial condition and run a very short forward test run, do:
+
+.. code-block:: bash
+
+   cd /lustre/scratch4/turquoise/username/isomip_plus_Ocean0/ocean/isomip_plus/2km/time_varying_Ocean0/
+   salloc --nodes=1 --time=0:20:00 --account=e3sm
+
+   <<load modules needed for MPI, python, etc.>>
+
+   ./run.py
+
+This will run the ``base_mesh``, ``initial_state``, ``ssh_adjustment`` and
+``test`` steps.
+
+Running a 1-month simulation
+----------------------------
+
+It is best to do a short test run (1 month) to make sure everything is working,
+rather than jumping into a 2 or 20-year simulation.  How you do this will depend
+on your system.  Here, we show starting an interactive job on LANL IC.  You will
+need to figure out how set up your system with the appropriate compilers, MPI,
+libraries, etc., which will be covered elsewhere in this documentation.
+
+.. code-block:: bash
+
+   cd /lustre/scratch4/turquoise/username/isomip_plus_Ocean0/ocean/isomip_plus/2km/time_varying_Ocean0/simulation/
+   salloc --nodes=1 --time=0:20:00 --account=e3sm
+
+   <<load modules needed for MPI, python, etc.>>
+
+   ./run.py
+
+Running a longer job is the same procedure as in :ref:`isomip_plus_long_run`_
