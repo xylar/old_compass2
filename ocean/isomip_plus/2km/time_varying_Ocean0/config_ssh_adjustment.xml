@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<config case="ssh_adjustment">
+	<add_link source="../initial_state/graph.info" dest="graph.info"/>
+	<add_link source="../initial_state/ocean.nc" dest="init0.nc"/>
+	<add_link source="../Ocean0.cfg" dest="Ocean0.cfg"/>
+
+	<add_executable source="model" dest="ocean_model"/>
+
+	<namelist name="namelist.ocean" mode="forward">
+		<template file="template_forward.xml" path_base="script_configuration_dir"/>
+		<template file="global_stats.xml" path_base="script_core_dir" path="templates/analysis_members"/>
+		<template file="template_adjust_ssh.xml" path_base="script_configuration_dir"/>
+		<option name="config_iterative_init_variable">'ssh'</option>
+		<option name="config_pressure_gradient_type">'Jacobian_from_TS'</option>
+		<option name="config_eos_type">'jm'</option>
+	</namelist>
+
+	<streams name="streams.ocean" keep="immutable" mode="forward">
+		<template file="template_adjust_ssh.xml" path_base="script_configuration_dir"/>
+		<template file="global_stats.xml" path_base="script_core_dir" path="templates/analysis_members"/>
+		<stream name="globalStatsOutput">
+			<attribute name="clobber_mode">truncate</attribute>
+			<attribute name="output_interval">0000_00:00:01</attribute>
+		</stream>
+	</streams>
+
+</config>
