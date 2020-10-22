@@ -27,8 +27,14 @@ if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read('Ocean0.cfg')
 
-    cores = config['execution'].getint('ssh_adjustment_cores')
+    cores = config['execution'].getint('init_cores')
     parallel_executable = config['execution'].get('parallel_executable')
+
+    pio_tasks = config['execution'].getint('init_pio_tasks')
+    pio_stride = cores//pio_tasks
+    config.set('namelist', 'config_pio_num_iotasks', '{}'.format(pio_tasks))
+    config.set('namelist', 'config_pio_stride', '{}'.format(pio_stride))
+
     update_namelist('namelist.ocean', config['namelist'])
 
     iteration_count = config['ssh_adjustment'].getint('iteration_count')
@@ -37,6 +43,8 @@ if __name__ == '__main__':
     if variable_to_modify not in ['ssh', 'landIcePressure']:
         raise ValueError("Unknown variable to modify: {}".format(
             variable_to_modify))
+
+    subprocess.check_call(['gpmetis', 'graph.info', '{}'.format(cores)])
 
     for iter_index in range(iteration_count):
         print(" * Iteration %i/%i" % (iter_index + 1, iteration_count))

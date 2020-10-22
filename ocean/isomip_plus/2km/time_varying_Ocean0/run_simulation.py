@@ -7,6 +7,7 @@ import numpy
 import netCDF4
 
 from update_evaporationFlux import update_evaporation_flux
+from namelist import update_namelist
 
 
 def write_var(outFile, outVarName, field, attrs):
@@ -46,9 +47,9 @@ def process_land_ice_forcing(inFileName, outFileName, years, scaling):
     inLandIceDraft = mpasFile.variables['landIceDraft'][:]
     inLandIcePressure = mpasFile.variables['landIcePressure'][:]
     inLandIceFraction = mpasFile.variables['landIceFraction'][:]
+    nCells = len(mpasFile.dimensions['nCells'])
     mpasFile.close()
 
-    nCells = len(mpasFile['nCells'])
     StrLen = 64
     nTime = len(years)
 
@@ -57,12 +58,15 @@ def process_land_ice_forcing(inFileName, outFileName, years, scaling):
     landIceFraction = numpy.zeros(landIcePressure.shape)
     landIceDraft = numpy.zeros(landIcePressure.shape)
 
+    scaling0 = scaling[0]
+    scaling = [s/scaling0 for s in scaling]
+
     for tIndex in range(nTime):
         xtime[tIndex] = "{:04d}-01-01_00:00:00                               " \
                         "              ".format(years[tIndex])
-        landIcePressure[nTime, :] = scaling[tIndex]*inLandIcePressure
-        landIceDraft[nTime, :] = scaling[tIndex]*inLandIceDraft
-        landIceFraction[nTime, :] = inLandIceFraction
+        landIcePressure[tIndex, :] = scaling[tIndex]*inLandIcePressure
+        landIceDraft[tIndex, :] = scaling[tIndex]*inLandIceDraft
+        landIceFraction[tIndex, :] = inLandIceFraction
 
     outFile = netCDF4.Dataset(outFileName, 'w', format='NETCDF3_64BIT_OFFSET')
     outFile.createDimension('Time', size=None)
@@ -93,13 +97,20 @@ def main():
     config = configparser.ConfigParser()
     config.read('Ocean0.cfg')
 
-    forward_cores = config['execution'].getint('forward_cores')
+    cores = config['execution'].getint('simulation_cores')
     parallel_executable = config['execution'].get('parallel_executable')
 
-    config['execution'].getint('forward_cores')
+    pio_tasks = config['execution'].getint('simulation_pio_tasks')
+    pio_stride = cores//pio_tasks
+    config.set('namelist', 'config_pio_num_iotasks', '{}'.format(pio_tasks))
+    config.set('namelist', 'config_pio_stride', '{}'.format(pio_stride))
+
+    update_namelist('namelist.ocean', config['namelist'])
 
     scaling = config['forcing'].get('scaling')
     scaling = [float(s) for s in scaling.split(',')]
+    if scaling[0] == 0.:
+        raise ValueError('The first scaling in the forcing must be nonzero')
     years = config['forcing'].get('years')
     years = [int(y) for y in years.split(',')]
     if years[0] != 1:
@@ -109,7 +120,7 @@ def main():
     if not os.path.exists(forcing_filename):
         process_land_ice_forcing('init.nc', forcing_filename, years, scaling)
 
-    subprocess.check_call(['gpmetis', 'graph.info', '{}'.format(forward_cores)])
+    subprocess.check_call(['gpmetis', 'graph.info', '{}'.format(cores)])
     print("\n")
     print("     *****************************")
     print("     ** Starting model run step **")
@@ -117,7 +128,7 @@ def main():
     print("\n")
     os.environ['OMP_NUM_THREADS'] = '1'
 
-    subprocess.check_call([parallel_executable, '-n', '{}'.format(forward_cores),
+    subprocess.check_call([parallel_executable, '-n', '{}'.format(cores),
                            './ocean_model', '-n', 'namelist.ocean',
                            '-s', 'streams.ocean'])
     print("\n")

@@ -6,7 +6,7 @@
 	<add_link source="../Ocean0.cfg" dest="Ocean0.cfg"/>
 
 	<add_executable source="model" dest="ocean_model"/>
-	<copy_file source_path="script_test_dir" source="initial_state.py" dest="initial_state.py"/>
+	<copy_file source_path="script_test_dir" source="run_initial_state.py" dest="run.py"/>
 	<copy_file source_path="script_test_dir" source="namelist.py" dest="namelist.py"/>
 
 	<namelist name="namelist.ocean" mode="init">

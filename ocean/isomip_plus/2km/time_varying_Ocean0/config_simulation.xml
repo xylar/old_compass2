@@ -12,6 +12,8 @@
 	<add_link source_path="utility_scripts" source="setup_restart.py" dest="setup_restart.py"/>
 	<add_link source_path="utility_scripts" source="check_progress.py" dest="check_progress.py"/>
 	<copy_file source_path="script_configuration_dir" source="update_evaporationFlux.py" dest="update_evaporationFlux.py"/>
+	<copy_file source_path="script_test_dir" source="run_simulation.py" dest="run.py"/>
+	<copy_file source_path="script_test_dir" source="namelist.py" dest="namelist.py"/>
 
 	<namelist name="namelist.ocean" mode="forward">
 		<template file="template_forward.xml" path_base="script_configuration_dir"/>

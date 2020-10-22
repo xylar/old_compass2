@@ -7,6 +7,8 @@
 	<add_link source="../Ocean0.cfg" dest="Ocean0.cfg"/>
 
 	<add_executable source="model" dest="ocean_model"/>
+	<copy_file source_path="script_test_dir" source="namelist.py" dest="namelist.py"/>
+	<copy_file source_path="script_test_dir" source="run_test.py" dest="run.py"/>
 
 	<namelist name="namelist.ocean" mode="forward">
 		<template file="template_forward.xml" path_base="script_configuration_dir"/>

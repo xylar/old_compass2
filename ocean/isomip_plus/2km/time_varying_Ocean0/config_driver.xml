@@ -1,15 +1,15 @@
 <driver_script name="run.py">
 	<case name="base_mesh">
-		<step executable="./base_mesh.py" quiet="true" pre_message=" * Running base_mesh" post_message="     Complete"/>
+		<step executable="./run.py" quiet="true" pre_message=" * Running base_mesh" post_message="     Complete"/>
 	</case>
 	<case name="initial_state">
-		<step executable="./initial_state.py" quiet="true" pre_message=" * Running initial_state" post_message="     Complete"/>
+		<step executable="./run.py" quiet="true" pre_message=" * Running initial_state" post_message="     Complete"/>
 	</case>
 	<case name="ssh_adjustment">
-		<step executable="./ssh_adjustment.py" quiet="true" pre_message=" * Running ssh_adjustment" post_message="     Complete"/>
+		<step executable="./run.py" quiet="true" pre_message=" * Running ssh_adjustment" post_message="     Complete"/>
 	</case>
 	<case name="test">
-		<step executable="./test.py" quiet="true" pre_message=" * Running test" post_message="     Complete"/>
+		<step executable="./run.py" quiet="true" pre_message=" * Running test" post_message="     Complete"/>
 	</case>
 	<validation>
 		<compare_fields file1="test/output.nc">

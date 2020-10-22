@@ -1,7 +1,7 @@
 import warnings
 
 
-def update_namelist(filename, config):
+def update_namelist(filename, config, warn=False):
     with open(filename) as f:
         namelist = [line.rstrip() for line in f]
 
@@ -17,7 +17,7 @@ def update_namelist(filename, config):
             new_namelist.append(line)
         namelist = new_namelist
 
-        if not found:
+        if not found and warn:
             warnings.warn('{} not found in {}'.format(key, filename))
 
     with open(filename, 'w') as f:
