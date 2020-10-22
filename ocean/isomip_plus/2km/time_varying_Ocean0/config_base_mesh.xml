@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<config case="init_step1">
+<config case="base_mesh">
 
 	<get_file hash="kpqjir3tne" dest_path="mesh_database" file_name="doubly_periodic_2km_488x87km_planar.151226.nc">
 		<mirror protocol="wget" url="https://web.lcrc.anl.gov/public/e3sm/mpas_standalonedata/mpas-ocean/mesh_database/"/>
@@ -13,8 +13,11 @@
 	<add_link source_path="initial_condition_database" source="Ocean1_input_geom_v1.01.nc" dest="input_geometry.nc"/>
 
 	<add_executable source="model" dest="ocean_model"/>
-	<add_link source_path="script_configuration_dir" source="processInputGeometry.py" dest="processInputGeometry.py"/>
-	<add_link source_path="script_configuration_dir" source="removePeriodic.py" dest="removePeriodic.py"/>
+	<copy_file source_path="script_configuration_dir" source="processInputGeometry.py" dest="processInputGeometry.py"/>
+	<copy_file source_path="script_test_dir" source="base_mesh.py" dest="base_mesh.py"/>
+	<copy_file source_path="script_test_dir" source="namelist.py" dest="namelist.py"/>
+	<copy_file source_path="script_test_dir" source="Ocean0.cfg" dest="../Ocean0.cfg"/>
+	<add_link source="../Ocean0.cfg" dest="Ocean0.cfg"/>
 
 	<namelist name="namelist.ocean" mode="init">
 		<template file="template_init.xml" path_base="script_configuration_dir"/>
@@ -28,30 +31,4 @@
 		<template file="template_init.xml" path_base="script_configuration_dir"/>
 	</streams>
 
-	<run_script name="run.py">
-		<step executable="./processInputGeometry.py">
-			<argument flag="-i">input_geometry.nc</argument>
-			<argument flag="-o">input_geometry_processed.nc</argument>
-			<argument flag="-s">2.0</argument>
-			<argument flag="-m">100.0</argument>
-			<argument flag="--scale">0.1</argument>
-		</step>
-
-		<step executable="MpasMeshConverter.x">
-			<argument flag="">base_mesh.nc</argument>
-			<argument flag="">mesh.nc</argument>
-		</step>
-		<step executable="gpmetis">
-			<argument flag="graph.info">4</argument>
-		</step>
-
-		<model_run procs="4" threads="1" namelist="namelist.ocean" streams="streams.ocean"/>
-
-		<step executable="MpasCellCuller.x">
-			<argument flag="">ocean.nc</argument>
-		</step>
-		<step executable="./removePeriodic.py">
-			<argument flag="">culled_mesh.nc</argument>
-		</step>
-	</run_script>
 </config>
