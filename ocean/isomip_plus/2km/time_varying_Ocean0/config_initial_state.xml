@@ -1,10 +1,13 @@
 <?xml version="1.0"?>
-<config case="init_step2">
-	<add_link source="../init_step1/culled_mesh.nc" dest="mesh.nc"/>
-	<add_link source="../init_step1/culled_graph.info" dest="graph.info"/>
-	<add_link source="../init_step1/input_geometry_processed.nc" dest="input_geometry_processed.nc"/>
+<config case="initial_state">
+	<add_link source="../base_mesh/culled_mesh.nc" dest="mesh.nc"/>
+	<add_link source="../base_mesh/culled_graph.info" dest="graph.info"/>
+	<add_link source="../base_mesh/input_geometry_processed.nc" dest="input_geometry_processed.nc"/>
+	<add_link source="../Ocean0.cfg" dest="Ocean0.cfg"/>
 
 	<add_executable source="model" dest="ocean_model"/>
+	<copy_file source_path="script_test_dir" source="initial_state.py" dest="initial_state.py"/>
+	<copy_file source_path="script_test_dir" source="namelist.py" dest="namelist.py"/>
 
 	<namelist name="namelist.ocean" mode="init">
 		<template file="template_init.xml" path_base="script_configuration_dir"/>
@@ -17,13 +20,5 @@
 	<streams name="streams.ocean" keep="immutable" mode="init">
 		<template file="template_init.xml" path_base="script_configuration_dir"/>
 	</streams>
-
-	<run_script name="run.py">
-		<step executable="gpmetis">
-			<argument flag="graph.info">4</argument>
-		</step>
-
-		<model_run procs="4" threads="1" namelist="namelist.ocean" streams="streams.ocean"/>
-	</run_script>
 
 </config>
