@@ -7,13 +7,15 @@ def update_namelist(filename, config):
 
     for key in config:
         found = False
+        new_namelist = []
         for index, line in enumerate(namelist):
             if key in line:
                 index = line.find(' = ')
                 if index >= 0:
                     found = True
-                    namelist[index] = \
-                        '{} = {}'.format(line[0:index], config[key])
+                    line = '{} = {}'.format(line[0:index], config[key])
+            new_namelist.append(line)
+        namelist = new_namelist
 
         if not found:
             warnings.warn('{} not found in {}'.format(key, filename))
